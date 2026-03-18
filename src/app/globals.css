@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #0F172A;
+    --accent: #6366F1;
+    --accent-light: #818CF8;
+    --accent-dark: #4F46E5;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-primary font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent;
+  }
+
+  /* Section padding */
+  .section-padding {
+    @apply py-20 px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Container */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Button primary */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-full font-semibold
+           hover:bg-accent-dark transition-all duration-300 shadow-lg hover:shadow-accent/30 hover:shadow-xl
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  /* Button secondary */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 bg-transparent text-white px-6 py-3 rounded-full font-semibold
+           border-2 border-white/40 hover:border-white hover:bg-white/10 transition-all duration-300
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  /* Button outline */
+  .btn-outline {
+    @apply inline-flex items-center gap-2 bg-transparent text-accent px-6 py-3 rounded-full font-semibold
+           border-2 border-accent hover:bg-accent hover:text-white transition-all duration-300
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  /* Service card */
+  .service-card {
+    @apply bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300
+           border border-mid-gray hover:border-accent/20 hover:-translate-y-1;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-4xl md:text-5xl font-heading font-bold text-primary;
+  }
+
+  /* Section subtitle */
+  .section-subtitle {
+    @apply text-lg text-slate-600 max-w-2xl mx-auto;
+  }
+}
+
+@layer utilities {
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #F8FAFC;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #6366F1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4F46E5;
+  }
+}

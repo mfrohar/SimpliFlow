@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "SimpliFlow Dev",
+      "runtimeExecutable": "/Users/mehranfrohar/Library/Caches/ms-playwright-go/1.50.1/node",
+      "runtimeArgs": ["/tmp/npm_bootstrap/package/bin/npm-cli.js", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}
