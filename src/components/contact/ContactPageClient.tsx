@@ -10,7 +10,37 @@ import {
   Send,
   ChevronDown,
   CheckCircle2,
+  Loader2,
+  RotateCcw,
+  AlertCircle,
 } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface FormData {
+  name: string;
+  email: string;
+  company: string;
+  service: string;
+  message: string;
+}
+
+interface FieldErrors {
+  name?: string;
+  email?: string;
+  service?: string;
+  message?: string;
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const FORMSPREE_URL = "https://formspree.io/f/mnjgwvqd";
+
+const INITIAL_FORM: FormData = {
+  name: "",
+  email: "",
+  company: "",
+  service: "",
+  message: "",
+};
 
 const faqs = [
   {
@@ -41,26 +71,88 @@ const faqs = [
 ];
 
 export default function ContactPageClient() {
+  // ─── FAQ state ──────────────────────────────────────────────────────────────
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    company: "",
-    service: "",
-    message: "",
-  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simulate form submission
-    setTimeout(() => setSubmitted(true), 500);
-  };
+  // ─── Form state ─────────────────────────────────────────────────────────────
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
+  // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear the field-level error as the user starts typing
+    if (fieldErrors[name as keyof FieldErrors]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  /** Client-side validation — returns true if all required fields are filled */
+  const validate = (): boolean => {
+    const errors: FieldErrors = {};
+    if (!formData.name.trim())    errors.name    = "Full name is required.";
+    if (!formData.email.trim())   errors.email   = "Email address is required.";
+    if (!formData.service)        errors.service = "Please select a service.";
+    if (!formData.message.trim()) errors.message = "Message is required.";
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          company: formData.company || "—",
+          service: formData.service,
+          message: formData.message,
+        }),
+      });
+
+      if (res.ok) {
+        setIsSuccess(true);
+      } else {
+        // Formspree returns JSON error details on failure
+        const data = await res.json().catch(() => ({}));
+        const msg =
+          (data?.errors as Array<{ message: string }> | undefined)
+            ?.map((err) => err.message)
+            .join(", ") ||
+          "Something went wrong. Please try again or email us directly at hello@simpliflow.ca";
+        setErrorMessage(msg);
+      }
+    } catch {
+      setErrorMessage(
+        "Something went wrong. Please try again or email us directly at hello@simpliflow.ca"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData(INITIAL_FORM);
+    setIsSuccess(false);
+    setErrorMessage("");
+    setFieldErrors({});
   };
 
   return (
@@ -109,7 +201,8 @@ export default function ContactPageClient() {
                   Fill out the form below and we&apos;ll get back to you within one business day.
                 </p>
 
-                {submitted ? (
+                {/* ── Success state ── */}
+                {isSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -119,134 +212,228 @@ export default function ContactPageClient() {
                     <h3 className="font-heading font-bold text-xl text-primary mb-2">
                       Message Sent!
                     </h3>
-                    <p className="text-slate-500 text-sm">
-                      Thanks for reaching out. We&apos;ll be in touch within one business day.
+                    <p className="text-slate-500 text-sm mb-6 max-w-xs mx-auto">
+                      Thanks for reaching out! We&apos;ll be in touch within 1 business day.
                     </p>
+                    <button
+                      onClick={handleReset}
+                      className="inline-flex items-center gap-2 text-accent font-semibold text-sm
+                                 hover:text-accent-dark transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Send another message
+                    </button>
                   </motion.div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                  /* ── Form ── */
+                  <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+
+                    {/* Row 1 — Name + Email */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {/* Full Name */}
                       <div>
                         <label
                           htmlFor="name"
                           className="block text-sm font-medium text-primary mb-1.5"
                         >
-                          Full Name *
+                          Full Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           id="name"
                           name="name"
                           type="text"
-                          required
+                          autoComplete="name"
+                          disabled={isSubmitting}
                           value={formData.name}
                           onChange={handleChange}
                           placeholder="Jane Smith"
-                          className="w-full px-4 py-3 rounded-xl border border-mid-gray bg-light-gray
-                                     text-primary placeholder-slate-400 text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                                     transition-all"
+                          className={`w-full px-4 py-3 rounded-xl border bg-light-gray
+                                      text-primary placeholder-slate-400 text-sm disabled:opacity-50
+                                      focus:outline-none focus:ring-2 focus:border-accent transition-all
+                                      ${fieldErrors.name
+                                        ? "border-red-400 focus:ring-red-200"
+                                        : "border-mid-gray focus:ring-accent/30"
+                                      }`}
                         />
+                        {fieldErrors.name && (
+                          <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                            {fieldErrors.name}
+                          </p>
+                        )}
                       </div>
+
+                      {/* Email Address */}
                       <div>
                         <label
                           htmlFor="email"
                           className="block text-sm font-medium text-primary mb-1.5"
                         >
-                          Email Address *
+                          Email Address <span className="text-red-500">*</span>
                         </label>
                         <input
                           id="email"
                           name="email"
                           type="email"
-                          required
+                          autoComplete="email"
+                          disabled={isSubmitting}
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="jane@company.com"
-                          className="w-full px-4 py-3 rounded-xl border border-mid-gray bg-light-gray
-                                     text-primary placeholder-slate-400 text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                                     transition-all"
+                          className={`w-full px-4 py-3 rounded-xl border bg-light-gray
+                                      text-primary placeholder-slate-400 text-sm disabled:opacity-50
+                                      focus:outline-none focus:ring-2 focus:border-accent transition-all
+                                      ${fieldErrors.email
+                                        ? "border-red-400 focus:ring-red-200"
+                                        : "border-mid-gray focus:ring-accent/30"
+                                      }`}
                         />
+                        {fieldErrors.email && (
+                          <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                            {fieldErrors.email}
+                          </p>
+                        )}
                       </div>
                     </div>
 
+                    {/* Company Name (optional) */}
                     <div>
                       <label
                         htmlFor="company"
                         className="block text-sm font-medium text-primary mb-1.5"
                       >
-                        Company Name
+                        Company Name{" "}
+                        <span className="text-slate-400 font-normal">(optional)</span>
                       </label>
                       <input
                         id="company"
                         name="company"
                         type="text"
+                        autoComplete="organization"
+                        disabled={isSubmitting}
                         value={formData.company}
                         onChange={handleChange}
                         placeholder="Acme Corp"
                         className="w-full px-4 py-3 rounded-xl border border-mid-gray bg-light-gray
-                                   text-primary placeholder-slate-400 text-sm
+                                   text-primary placeholder-slate-400 text-sm disabled:opacity-50
                                    focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
                                    transition-all"
                       />
                     </div>
 
+                    {/* Service Interest */}
                     <div>
                       <label
                         htmlFor="service"
                         className="block text-sm font-medium text-primary mb-1.5"
                       >
-                        Service Interest *
+                        Service Interest <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        id="service"
-                        name="service"
-                        required
-                        value={formData.service}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border border-mid-gray bg-light-gray
-                                   text-primary text-sm appearance-none
-                                   focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                                   transition-all"
-                      >
-                        <option value="" disabled>Select a service...</option>
-                        <option value="web-design">Web Design & Development</option>
-                        <option value="automation">Process Automation</option>
-                        <option value="marketing">Digital Marketing</option>
-                        <option value="multiple">Multiple Services</option>
-                        <option value="unsure">Not Sure Yet</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          id="service"
+                          name="service"
+                          disabled={isSubmitting}
+                          value={formData.service}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 rounded-xl border bg-light-gray
+                                      text-primary text-sm appearance-none disabled:opacity-50
+                                      focus:outline-none focus:ring-2 focus:border-accent transition-all
+                                      ${!formData.service ? "text-slate-400" : "text-primary"}
+                                      ${fieldErrors.service
+                                        ? "border-red-400 focus:ring-red-200"
+                                        : "border-mid-gray focus:ring-accent/30"
+                                      }`}
+                        >
+                          <option value="" disabled>Select a service...</option>
+                          <option value="Web Design">Web Design</option>
+                          <option value="Process Automation">Process Automation</option>
+                          <option value="Digital Marketing">Digital Marketing</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {/* Custom chevron */}
+                        <ChevronDown
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+                        />
+                      </div>
+                      {fieldErrors.service && (
+                        <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                          {fieldErrors.service}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Message */}
                     <div>
                       <label
                         htmlFor="message"
                         className="block text-sm font-medium text-primary mb-1.5"
                       >
-                        Message *
+                        Message <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         id="message"
                         name="message"
-                        required
-                        rows={5}
+                        rows={4}
+                        disabled={isSubmitting}
                         value={formData.message}
                         onChange={handleChange}
                         placeholder="Tell us about your project, challenges, or goals..."
-                        className="w-full px-4 py-3 rounded-xl border border-mid-gray bg-light-gray
-                                   text-primary placeholder-slate-400 text-sm resize-none
-                                   focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                                   transition-all"
+                        className={`w-full px-4 py-3 rounded-xl border bg-light-gray
+                                    text-primary placeholder-slate-400 text-sm resize-none disabled:opacity-50
+                                    focus:outline-none focus:ring-2 focus:border-accent transition-all
+                                    ${fieldErrors.message
+                                      ? "border-red-400 focus:ring-red-200"
+                                      : "border-mid-gray focus:ring-accent/30"
+                                    }`}
                       />
+                      {fieldErrors.message && (
+                        <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                          {fieldErrors.message}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Submit button */}
                     <button
                       type="submit"
-                      className="w-full btn-primary justify-center py-4 text-base"
+                      disabled={isSubmitting}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-accent text-white
+                                 px-6 py-4 rounded-full text-base font-semibold
+                                 hover:bg-accent-dark transition-all duration-200
+                                 shadow-lg hover:shadow-accent/30 hover:shadow-xl
+                                 hover:-translate-y-0.5 active:translate-y-0
+                                 disabled:opacity-70 disabled:cursor-not-allowed
+                                 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
                     >
-                      Send Message
-                      <Send className="w-5 h-5" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          Send Message
+                          <Send className="w-5 h-5" />
+                        </>
+                      )}
                     </button>
+
+                    {/* Submission error banner */}
+                    {errorMessage && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-3 bg-red-50 border border-red-200
+                                   text-red-700 text-sm rounded-xl px-4 py-3"
+                      >
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>{errorMessage}</span>
+                      </motion.div>
+                    )}
                   </form>
                 )}
               </motion.div>
