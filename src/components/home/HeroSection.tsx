@@ -39,7 +39,7 @@ export default function HeroSection() {
                      text-white/90 text-sm font-medium px-4 py-2 rounded-full mb-8"
         >
           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          Accepting new clients for Q2 2025
+          Accepting new clients for Q2 2026
         </motion.div>
 
         {/* Main Headline */}
